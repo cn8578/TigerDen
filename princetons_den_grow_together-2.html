@@ -192,6 +192,7 @@ body:not(.authenticated) .auth-gate{display:flex}
 .auth-tab{flex:1;border:0;border-radius:12px;padding:10px;background:#edf0e5;color:#667653;font-weight:800}
 .auth-tab.active{background:#70845F;color:white}
 .auth-fields{display:grid;gap:10px}
+[hidden]{display:none!important}
 .auth-fields label,.profile-fields label{display:grid;gap:6px;font-size:12px;font-weight:750;color:#69735a}
 .auth-fields input,.profile-fields input{font-size:14px}
 .auth-note{min-height:20px;margin:10px 0 0;font-size:12px;color:#8b603d}
@@ -234,7 +235,7 @@ body:not(.authenticated) .auth-gate{display:flex}
  </section>
 
  <section class="page" id="journal">
-  <div class="panel"><div class="eyebrow">A SPACE JUST FOR YOU</div><h3 id="journalPrompt">What’s on your mind today?</h3><p>Your reflections are private by default. You choose if something belongs in the campus den.</p>
+  <div class="panel"><div class="eyebrow">A SPACE JUST FOR YOU</div><h3 id="journalPrompt">What’s on your mind today?</h3><p>Your reflections are private to your account. You can choose to share a copy with your verified university community.</p>
    <textarea id="reflection" placeholder="Be honest, be messy, be kind to yourself…"></textarea>
    <div class="form-row"><label class="check"><input type="checkbox" id="shareReflection"> Share this reflection to the campus den</label><button class="btn" onclick="saveReflection()">Save reflection · +20 pts</button></div>
   </div>
@@ -276,7 +277,7 @@ body:not(.authenticated) .auth-gate{display:flex}
 <section class="page" id="figuring">
  <div class="eyebrow">WE'RE FIGURING IT OUT TOGETHER</div>
  <h2 class="page-heading">You don't have to have it all figured out.</h2>
- <p class="page-intro">A shared space to be honest about the things we're still learning. Share only what feels comfortable; posting is optional.</p>
+ <p class="page-intro">A shared space for verified members of your university community to be honest about the things we're still learning. Share only what feels comfortable; posting is optional.</p>
  <div class="panel together-prompt">
   <div class="eyebrow">THIS WEEK'S QUESTION</div>
   <h3 id="togetherQuestion">What is something you thought everyone else understood, but you are still figuring out?</h3>
@@ -303,7 +304,7 @@ body:not(.authenticated) .auth-gate{display:flex}
   <p>Each plant has its own milestone: 200 different community members completing that specific act. One person can contribute to only one goal each day.</p>
   <div class="grow-garden" id="growGarden"><div class="jungle-canopy"></div><div class="jungle-vines"></div><div class="jungle-ground"></div><div class="garden-hint">Tap a flower to discover its milestone</div></div>
  </div>
- <div class="section-head"><h3>Choose one act for today</h3><span class="muted">One contribution per day · per account</span></div>
+ <div class="section-head"><h3>Choose one act for today</h3><span class="muted">Swipe left from Home to visit your jungle · one contribution per day</span></div>
  <div class="grow-actions">
   <button class="grow-action" onclick="addGrowContribution('encouragement')"><span>💚</span><b>Offer encouragement</b><small>Let someone know they're not alone.</small></button>
   <button class="grow-action" onclick="addGrowContribution('celebration')"><span>🌼</span><b>Celebrate a win</b><small>Make room for someone else's joy.</small></button>
@@ -824,6 +825,6 @@ async function signOutApp() {
   else {toast('You’ve signed out.');document.body.classList.remove('authenticated');}
 }
 
-renderLeaders();renderQuests();renderStore();refreshTigerAppearance();initializeAuth();
+renderLeaders();renderQuests();renderStore();refreshTigerAppearance();enableHomeGrowSwipe();initializeAuth();
 </script>
 </body></html>
