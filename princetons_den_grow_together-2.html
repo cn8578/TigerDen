@@ -578,7 +578,7 @@ async function submitAuth() {
       if (!academicEmail(email)) throw new Error('Please use a university email address (for example, name@princeton.edu).');
       const displayName = document.getElementById('authDisplayName').value.trim() || email.split('@')[0];
       const tigerName = document.getElementById('authTigerName').value.trim() || 'My Tiger';
-      const result = await supabaseClient.auth.signUp({email,password,options:{data:{display_name:displayName,tiger_name:tigerName}}});
+      const result = await supabaseClient.auth.signUp({email,password,options:{data:{display_name:displayName,tiger_name:tigerName},emailRedirectTo:window.location.origin}});
       if (result.error) throw result.error;
       if (!result.data.session) {
         setAuthMessage('Account created. Check your university inbox and confirm your email, then return here to sign in.');
