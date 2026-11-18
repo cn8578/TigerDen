@@ -825,6 +825,23 @@ async function signOutApp() {
   else {toast('You’ve signed out.');document.body.classList.remove('authenticated');}
 }
 
+function enableHomeGrowSwipe() {
+  let startX=0,startY=0;
+  document.addEventListener('touchstart',event=>{
+    if(!event.touches||event.touches.length!==1)return;
+    startX=event.touches[0].clientX;startY=event.touches[0].clientY;
+  },{passive:true});
+  document.addEventListener('touchend',event=>{
+    if(!event.changedTouches||event.changedTouches.length!==1)return;
+    const dx=event.changedTouches[0].clientX-startX;
+    const dy=event.changedTouches[0].clientY-startY;
+    if(Math.abs(dx)<75||Math.abs(dx)<Math.abs(dy)*1.25)return;
+    const active=document.querySelector('.page.active');
+    if(!active)return;
+    if(active.id==='home'&&dx<0)go('grow');
+    else if(active.id==='grow'&&dx>0)go('home');
+  },{passive:true});
+}
 renderLeaders();renderQuests();renderStore();refreshTigerAppearance();enableHomeGrowSwipe();initializeAuth();
 </script>
 </body></html>
