@@ -215,6 +215,10 @@ body:not(.authenticated) .auth-gate{display:flex}
  .bottomnav button{border:0;background:none;color:#eaf5f3;font-size:11px;display:grid;gap:2px;justify-items:center;min-width:65px;padding:3px 10px}
  .bottomnav button span{font-size:22px}
  .bottomnav button.active{color:#24535c}
+ .grow-edge-tab{display:none;position:fixed;left:0;top:46%;z-index:28;border:0;border-radius:0 13px 13px 0;background:#e7eddb;color:#38533b;padding:13px 9px 13px 7px;box-shadow:3px 4px 14px #17241720;font-size:17px;writing-mode:vertical-rl;align-items:center;gap:7px;font-weight:800}
+ .grow-edge-tab span{font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+ body.home-active .grow-edge-tab{display:flex}
+ body.grow-open .grow-edge-tab{display:none}
  .grow-scrim{position:fixed;inset:0;background:#17241766;opacity:0;pointer-events:none;transition:opacity .25s;z-index:29}
  .grow-scrim.open{opacity:1;pointer-events:auto}
  .grow-drawer{display:block!important;position:fixed;left:0;top:0;bottom:0;width:min(460px,92vw);z-index:30;overflow-y:auto;overscroll-behavior:contain;background:var(--paper);padding:22px 20px 105px;box-shadow:12px 0 40px #17241724;transform:translateX(-105%);transition:transform .28s ease}
@@ -311,6 +315,7 @@ body:not(.authenticated) .auth-gate{display:flex}
 
 
 <div class="grow-scrim" id="growScrim" onclick="closeGrowDrawer()" aria-hidden="true"></div>
+<button class="grow-edge-tab" id="growEdgeTab" type="button" onclick="openGrowDrawer()" aria-label="Open Grow jungle">🌱 <span>Grow</span></button>
 <aside class="grow-drawer" id="grow" aria-label="Grow Jungle"><button class="grow-close" type="button" onclick="closeGrowDrawer()">← Back to Home</button>
  <div class="eyebrow">GROW TOGETHER</div>
  <h2 class="page-heading">A healthier campus is something we build together.</h2>
@@ -321,7 +326,7 @@ body:not(.authenticated) .auth-gate{display:flex}
   <p>Each plant has its own milestone: 200 different community members completing that specific act. One person can contribute to only one goal each day.</p>
   <div class="grow-garden" id="growGarden"><div class="jungle-canopy"></div><div class="jungle-vines"></div><div class="jungle-ground"></div><div class="garden-hint">Tap a flower to discover its milestone</div></div>
  </div>
- <div class="section-head"><h3>Choose one act for today</h3><span class="muted">Swipe left from Home to visit your jungle · one contribution per day</span></div>
+ <div class="section-head"><h3>Choose one act for today</h3><span class="muted">Swipe right from the left edge of Home to open your jungle · one contribution per day</span></div>
  <div class="grow-actions">
   <button class="grow-action" onclick="addGrowContribution('encouragement')"><span>💚</span><b>Offer encouragement</b><small>Let someone know they're not alone.</small></button>
   <button class="grow-action" onclick="addGrowContribution('celebration')"><span>🌼</span><b>Celebrate a win</b><small>Make room for someone else's joy.</small></button>
@@ -394,7 +399,7 @@ let completedQuests=JSON.parse(localStorage.getItem('denQuests')||'{}');
 let coatImages={};
 function persist(){localStorage.setItem('denPoints',points);localStorage.setItem('denReflections',JSON.stringify(reflections));localStorage.setItem('denPosts',JSON.stringify(posts));localStorage.setItem('denBought',JSON.stringify(bought));localStorage.setItem('denEquipped',equipped);localStorage.setItem('denCoat',coat);localStorage.setItem('denCoats',JSON.stringify(ownedCoats));localStorage.setItem('denQuests',JSON.stringify(completedQuests));document.getElementById('points').textContent=points}
 function toast(s){let t=document.getElementById('toast');t.textContent=s;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2100)}
-function go(page){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===page));document.querySelectorAll('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));document.getElementById('pageTitle').textContent=titles[page];if(page==='journal')renderHistory();if(page==='community')renderFeed();if(page==='home')renderStore();if(page==='figuring')renderTogetherFeed();if(page==='grow')renderGrowTogether();window.scrollTo({top:0,behavior:'smooth'})}
+function go(page){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===page));document.querySelectorAll('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));document.getElementById('pageTitle').textContent=titles[page];document.body.classList.toggle('home-active',page==='home');if(page==='journal')renderHistory();if(page==='community')renderFeed();if(page==='home')renderStore();if(page==='figuring')renderTogetherFeed();if(page==='grow')openGrowDrawer();window.scrollTo({top:0,behavior:'smooth'})}
 document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.page)));
 document.querySelectorAll('[data-home-tab]').forEach(b=>b.addEventListener('click',()=>{
  document.querySelectorAll('[data-home-tab]').forEach(x=>x.classList.toggle('active',x===b));
@@ -866,13 +871,15 @@ function enableHomeGrowSwipe() {
     if(!event.changedTouches||event.changedTouches.length!==1)return;
     const dx=event.changedTouches[0].clientX-startX;
     const dy=event.changedTouches[0].clientY-startY;
-    if(Math.abs(dx)<75||Math.abs(dx)<Math.abs(dy)*1.25)return;
+    if(Math.abs(dx)<65||Math.abs(dx)<Math.abs(dy)*1.25)return;
     const active=document.querySelector('.page.active');
     const drawer=document.getElementById('grow');
-    if(active?.id==='home'&&dx<0)openGrowDrawer();
-    else if(drawer?.classList.contains('open')&&dx>0)closeGrowDrawer();
+    // Reveal Grow by swiping right inward from the left screen edge while on Home.
+    if(active?.id==='home'&&!drawer?.classList.contains('open')&&startX<=36&&dx>0)openGrowDrawer();
+    // Swipe left from inside the open drawer to return to Home.
+    else if(drawer?.classList.contains('open')&&dx<0)closeGrowDrawer();
   },{passive:true});
 }
-renderQuests();renderStore();refreshTigerAppearance();enableHomeGrowSwipe();initializeAuth();
+document.body.classList.add('home-active');renderQuests();renderStore();refreshTigerAppearance();enableHomeGrowSwipe();initializeAuth();
 </script>
 </body></html>
