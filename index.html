@@ -494,8 +494,7 @@ function submitTogetherResponse(){
  const field=document.getElementById('togetherResponse');
  const value=field.value.trim();
  if(value.length<8){toast('Share a few more words, if you feel comfortable.');return}
- const anonymous=document.getElementById('togetherAnonymous').checked;
- togetherResponses.unshift({text:value,who:anonymous?'A fellow tiger':'A community member',date:new Date().toLocaleDateString()});
+ togetherResponses.unshift({text:value,who:currentProfile?.tiger_name||'My Tiger',date:new Date().toLocaleDateString()});
  localStorage.setItem('denTogetherResponses',JSON.stringify(togetherResponses));
  field.value='';renderTogetherFeed();document.getElementById('togetherStatus').textContent='Thanks for adding your voice. Your response is saved in this browser’s demo feed.';
  toast('Thank you for sharing. You belong here 💚');
