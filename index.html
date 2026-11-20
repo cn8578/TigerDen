@@ -121,7 +121,13 @@ textarea{resize:vertical;min-height:115px;line-height:1.5}
 .profile .avatar{width:44px;height:44px;overflow:visible}
 .profile .avatar img{border-radius:50%;object-fit:cover}
 .feed-top .avatar{width:38px;height:38px;overflow:visible}
-.avatar .accessory{right:2px;top:0;font-size:15px;z-index:4;pointer-events:none}
+.avatar .accessory{right:2px;top:0;font-size:15px;z-index:4;pointer-events:none;position:absolute}
+.avatar .accessory.head{left:50%;right:auto;top:-3px;transform:translateX(-50%)}
+.avatar .accessory.neck{left:50%;right:auto;top:auto;bottom:0;transform:translateX(-50%)}
+.avatar .accessory.body{right:0;bottom:0;top:auto}
+.avatar .accessory.side{right:0;top:38%}
+.post-tiger-avatar{position:relative;overflow:visible;flex:none}
+.post-tiger-avatar img{border-radius:50%;object-fit:contain}
 .avatar .accessory.head{left:50%;right:auto;top:-3px;transform:translateX(-50%)}
 .avatar .accessory.neck{left:50%;right:auto;top:auto;bottom:0;transform:translateX(-50%)}
 .avatar .accessory.body{right:0;bottom:0;top:auto}
@@ -393,6 +399,7 @@ let posts=JSON.parse(localStorage.getItem('denPosts')||'null')||[
 ];
 let bought=JSON.parse(localStorage.getItem('denBought')||'[]');
 let equipped=localStorage.getItem('denEquipped')||'';
+let equippedItems=JSON.parse(localStorage.getItem('denEquippedItems')|| (equipped?'["'+equipped+'"]':'[]'));
 let coat=localStorage.getItem('denCoat')||'original';
 let ownedCoats=JSON.parse(localStorage.getItem('denCoats')||'["original"]');
 let completedQuests=JSON.parse(localStorage.getItem('denQuests')||'{}');
@@ -459,20 +466,24 @@ async function refreshTigerAppearance(){
  coatImages={sitting:sit,profile};
  const main=document.getElementById('tiger');if(main)main.src=sit;
  document.querySelectorAll('.profile .avatar img,.feed-top .avatar img').forEach(im=>im.src=profile);
- document.querySelectorAll('.avatar .accessory').forEach(el=>{
-  const a=ACCESSORIES.find(x=>x[1]===equipped);el.textContent=a?a[0]:'✦';
-  el.className='accessory'+(a?' '+a[2]:'');
-  el.style.left=a&&a[2]==='head'?'50%':a&&a[2]==='neck'?'50%':'auto';
-  el.style.right=a&&a[2]==='head'?'auto':'2px';
-  el.style.top=a&&a[2]==='neck'?'auto':'0';
-  el.style.bottom=a&&a[2]==='neck'?'1px':'auto';
-  el.style.transform=a&&a[2]==='head'?'translateX(-50%)':'none';
- });
+ document.querySelectorAll('.avatar:not(.post-tiger-avatar) .accessory').forEach(el=>el.remove());
  const layer=document.getElementById('tigerAccessories');if(layer)layer.innerHTML=accessoryMarkup(true);
  renderStore();
 }
 function accessoryArt(){return (ACCESSORIES.find(a=>a[1]===equipped)||[])[0]||''}
-function accessoryMarkup(big=false){if(!equipped)return '';const a=ACCESSORIES.find(x=>x[1]===equipped);if(!a)return '';return `<span class="tiger-accessory ${a[2]}">${a[0]}</span>`}
+function accessoryMarkup(big=false){return equippedItems.map(name=>{const a=ACCESSORIES.find(x=>x[1]===name);return a?`<span class="tiger-accessory ${a[2]}">${a[0]}</span>`:''}).join('')}
+function postAvatarMarkup(coatId,accessories){
+ const art=(Array.isArray(accessories)?accessories:[]).map(name=>{const a=ACCESSORIES.find(x=>x[1]===name);return a?`<span class="accessory ${a[2]}">${a[0]}</span>`:''}).join('');
+ return `<div class="avatar post-tiger-avatar" data-coat="${escapeHtml(coatId||'original')}"><img src="${TIGER_PROFILE}" alt="Tiger profile">${art}</div>`;
+}
+async function paintPostAvatars(){
+ const avatars=[...document.querySelectorAll('.post-tiger-avatar[data-coat]')];
+ await Promise.all(avatars.map(async avatar=>{
+  const c=COATS.find(x=>x.id===avatar.dataset.coat)||COATS[0];
+  const url=await recolorData(TIGER_PROFILE,c.hex);
+  const img=avatar.querySelector('img');if(img)img.src=url;
+ }));
+}
 function renderCoats(){
  const el=document.getElementById('coatStore');if(!el)return;
  el.innerHTML=COATS.filter(c=>c.id!=='original').map(c=>`<div class="store-item"><img class="coat-preview" src="${coatImages.sitting||TIGER_SITTING}" style="filter:${c.id===coat?'none':'none'}" alt="Tiger coat preview"><b><span class="coat-swatch" style="background:${c.hex}"></span>${c.name}</b><small>✦ ${c.cost} points</small><button class="btn ${coat===c.id?'secondary':''}" ${ownedCoats.includes(c.id)?`onclick="selectCoat('${c.id}')"`:`onclick="buyCoat('${c.id}')"`}>${coat===c.id?'Wearing':ownedCoats.includes(c.id)?'Wear':'Purchase'}</button></div>`).join('');
@@ -494,14 +505,30 @@ function renderLeaders(){let a=[['Maya','Helpful replies',42],['Jordan','Thought
 function leader(x,i){const looks=['🌼','🍃','🎀'];return `<div class="leader-row"><span class="rank">${i+1}</span><div class="leader-avatar"><img src="${TIGER_PROFILE}" alt="Tiger profile"><span>${looks[i%looks.length]}</span></div><div><b>${x[0]}</b><small>${x[1]}</small></div><strong>${x[2]} ${x[2]>100?'pts':'thanks'}</strong></div>`}
 const items=[['🌼','Flower crown',60],['🧣','Cozy scarf',80],['🍃','Leaf pin',45],['🎀','Big bow',70],['⭐','Golden star',100],['🧡','Warm sweater',130]];
 function renderStore(){
- document.getElementById('equipped').textContent=equipped?'Currently wearing: '+equipped:'No accessories equipped yet';
- document.getElementById('store').innerHTML=items.map(([art,name,cost])=>`<div class="store-item"><div class="itemart">${art}</div><b>${name}</b><small>✦ ${cost} points</small><button class="btn ${bought.includes(name)?'secondary':''}" ${bought.includes(name)?`onclick="equipItem('${name}')"`:`onclick="buyItem('${name}',${cost})"`}>${bought.includes(name)?(equipped===name?'Equipped':'Equip'):'Redeem'}</button></div>`).join('');
+ const equippedLabel=equippedItems.length?equippedItems.join(', '):'No accessories equipped';
+ document.getElementById('equipped').textContent='Currently wearing: '+equippedLabel;
+ document.getElementById('store').innerHTML=items.map(([art,name,cost])=>{
+  const owned=bought.includes(name),wearing=equippedItems.includes(name);
+  return `<div class="store-item"><div class="itemart">${art}</div><b>${name}</b><small>✦ ${cost} points</small><button class="btn ${wearing?'secondary':''}" ${owned?`onclick="toggleAccessory('${name}')"`:`onclick="buyItem('${name}',${cost})"`}>${owned?(wearing?'Remove':'Equip'):'Redeem'}</button></div>`;
+ }).join('');
  const layer=document.getElementById('tigerAccessories');if(layer)layer.innerHTML=accessoryMarkup(true);
- document.querySelectorAll('.avatar .accessory').forEach(el=>el.textContent=accessoryArt()||'✦');
  renderCoats();
 }
-function buyItem(name,cost){if(points<cost){toast('A few more points and it’s yours!');return}points-=cost;bought.push(name);equipped=name;persist();renderStore();toast(name+' added to your tiger’s closet!')}
-function equipItem(name){equipped=name;persist();renderStore();toast('Your tiger is looking lovely!')}
+function buyItem(name,cost){
+ if(points<cost){toast('A few more points and it’s yours!');return}
+ if(!bought.includes(name))bought.push(name);
+ points-=cost;
+ if(!equippedItems.includes(name))equippedItems.push(name);
+ equipped=equippedItems[0]||'';
+ persist();refreshTigerAppearance();toast(name+' added to your tiger’s closet!');
+}
+function toggleAccessory(name){
+ if(!bought.includes(name))return;
+ equippedItems=equippedItems.includes(name)?equippedItems.filter(x=>x!==name):[...equippedItems,name];
+ equipped=equippedItems[0]||'';
+ persist();refreshTigerAppearance();
+ toast(equippedItems.includes(name)?name+' equipped!':name+' removed from your tiger.');
+}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 let togetherResponses=JSON.parse(localStorage.getItem('denTogetherResponses')||'[]');
@@ -651,7 +678,7 @@ async function handleAuthSession(session) {
   if (activeUserId === user.id && currentProfile) return;
   currentUser = user; activeUserId = user.id;
   const profileResult = await supabaseClient.from('profiles')
-    .select('user_id,email_domain,display_name,tiger_name,points,bought_items,equipped_item,coat,owned_coats,completed_quests')
+    .select('user_id,email_domain,display_name,tiger_name,points,bought_items,equipped_item,equipped_items,coat,owned_coats,completed_quests')
     .eq('user_id', user.id).single();
   if (profileResult.error || !profileResult.data) {
     setAuthMessage('Your account is verified, but its profile could not be loaded. Please refresh or contact the site administrator.');
@@ -661,6 +688,7 @@ async function handleAuthSession(session) {
   points = Number(currentProfile.points ?? 80);
   bought = Array.isArray(currentProfile.bought_items) ? currentProfile.bought_items : [];
   equipped = currentProfile.equipped_item || '';
+  equippedItems = Array.isArray(currentProfile.equipped_items) ? currentProfile.equipped_items : (equipped ? [equipped] : []);
   coat = currentProfile.coat || 'original';
   ownedCoats = Array.isArray(currentProfile.owned_coats) ? currentProfile.owned_coats : ['original'];
   completedQuests = currentProfile.completed_quests || {};
@@ -694,24 +722,25 @@ async function loadAccountData() {
   const errors = results.filter(x=>x.error);
   if (errors.length) { toast('Some community data could not be loaded. Please refresh.'); console.error(errors); }
   reflections = (results[0].data || []).map(r=>({id:r.id,text:r.content,date:new Date(r.created_at).toLocaleString(),shared:false}));
-  posts = (results[1].data || []).map(p=>({id:p.id,name:p.author_name,text:p.content,time:new Date(p.created_at).toLocaleString(),comments:[],likes:0}));
-  togetherResponses = (results[2].data || []).map(p=>({id:p.id,text:p.content,who:p.author_name,date:new Date(p.created_at).toLocaleDateString()}));
+  posts = (results[1].data || []).map(p=>({id:p.id,name:p.author_name,text:p.content,time:new Date(p.created_at).toLocaleString(),coat:p.author_coat||'original',accessories:Array.isArray(p.author_accessories)?p.author_accessories:[],comments:[],likes:0}));
+  togetherResponses = (results[2].data || []).map(p=>({id:p.id,text:p.content,who:p.author_name,date:new Date(p.created_at).toLocaleDateString(),coat:p.author_coat||'original',accessories:Array.isArray(p.author_accessories)?p.author_accessories:[]}));
   growContributions = (results[3].data || []).map(c=>({id:c.id,user_id:c.user_id,goal:c.milestone_key,date:c.contribution_date,dateKey:c.contribution_date,note:c.note}));
   renderHistory(); renderFeed(); renderTogetherFeed(); renderGrowTogether();
 }
 function persist() {
   localStorage.setItem('denPoints',points);
   localStorage.setItem('denBought',JSON.stringify(bought));
-  localStorage.setItem('denEquipped',equipped);
+  localStorage.setItem('denEquipped',equippedItems[0]||'');
+  localStorage.setItem('denEquippedItems',JSON.stringify(equippedItems));
   localStorage.setItem('denCoat',coat);
   localStorage.setItem('denCoats',JSON.stringify(ownedCoats));
   localStorage.setItem('denQuests',JSON.stringify(completedQuests));
   const pointEl=document.getElementById('points'); if(pointEl)pointEl.textContent=points;
   if (currentUser && currentProfile) {
-    currentProfile.points=points; currentProfile.bought_items=bought; currentProfile.equipped_item=equipped;
+    currentProfile.points=points; currentProfile.bought_items=bought; currentProfile.equipped_item=equippedItems[0]||''; currentProfile.equipped_items=equippedItems;
     currentProfile.coat=coat; currentProfile.owned_coats=ownedCoats; currentProfile.completed_quests=completedQuests;
     supabaseClient.from('profiles').update({
-      points:points,bought_items:bought,equipped_item:equipped,coat:coat,owned_coats:ownedCoats,completed_quests:completedQuests
+      points:points,bought_items:bought,equipped_item:equippedItems[0]||'',equipped_items:equippedItems,coat:coat,owned_coats:ownedCoats,completed_quests:completedQuests
     }).eq('user_id',currentUser.id).then(({error})=>{if(error)console.error('Could not sync progress',error);});
   }
 }
@@ -727,16 +756,16 @@ function go(page) {
 }
 async function loadCommunityPosts() {
   if(!currentUser)return;
-  const r=await supabaseClient.from('community_posts').select('id,author_name,content,created_at').eq('post_type','community').order('created_at',{ascending:false}).limit(50);
+  const r=await supabaseClient.from('community_posts').select('id,author_name,content,created_at,author_coat,author_accessories').eq('post_type','community').order('created_at',{ascending:false}).limit(50);
   if(r.error){toast('Could not refresh the campus den.');return;}
-  posts=(r.data||[]).map(p=>({id:p.id,name:p.author_name,text:p.content,time:new Date(p.created_at).toLocaleString(),comments:[],likes:0}));
+  posts=(r.data||[]).map(p=>({id:p.id,name:p.author_name,text:p.content,time:new Date(p.created_at).toLocaleString(),coat:p.author_coat||'original',accessories:Array.isArray(p.author_accessories)?p.author_accessories:[],comments:[],likes:0}));
   renderFeed();
 }
 async function loadTogetherPosts() {
   if(!currentUser)return;
-  const r=await supabaseClient.from('community_posts').select('id,author_name,content,created_at').eq('post_type','together').order('created_at',{ascending:false}).limit(50);
+  const r=await supabaseClient.from('community_posts').select('id,author_name,content,created_at,author_coat,author_accessories').eq('post_type','together').order('created_at',{ascending:false}).limit(50);
   if(r.error){toast('Could not refresh the Together feed.');return;}
-  togetherResponses=(r.data||[]).map(p=>({id:p.id,text:p.content,who:p.author_name,date:new Date(p.created_at).toLocaleDateString()}));
+  togetherResponses=(r.data||[]).map(p=>({id:p.id,text:p.content,who:p.author_name,date:new Date(p.created_at).toLocaleDateString(),coat:p.author_coat||'original',accessories:Array.isArray(p.author_accessories)?p.author_accessories:[]}));
   renderTogetherFeed();
 }
 async function loadGrowData() {
@@ -776,7 +805,8 @@ async function publishPost() {
 }
 function renderFeed() {
   const el=document.getElementById('feed');if(!el)return;
-  el.innerHTML=posts.length?posts.map(p=>'<article class="feed-card"><div class="feed-top"><div class="avatar"><img src="'+(coatImages.profile||TIGER_PROFILE)+'" alt="Tiger profile"></div><div><b>'+escapeHtml(p.name||'A fellow tiger')+'</b><small>'+escapeHtml(p.time||'')+'</small></div></div><p>'+escapeHtml(p.text)+'</p></article>').join(''):'<div class="panel"><p>No stories have been shared in your university den yet. You can start with a small win or a kind reminder.</p></div>';
+  el.innerHTML=posts.length?posts.map(p=>'<article class="feed-card"><div class="feed-top">'+postAvatarMarkup(p.coat,p.accessories)+'<div><b>'+escapeHtml(p.name||'A fellow tiger')+'</b><small>'+escapeHtml(p.time||'')+'</small></div></div><p>'+escapeHtml(p.text)+'</p></article>').join(''):'<div class="panel"><p>No stories have been shared in your university den yet. You can start with a small win or a kind reminder.</p></div>';
+  paintPostAvatars();
 }
 async function submitTogetherResponse() {
   const field=document.getElementById('togetherResponse'), value=field.value.trim();
@@ -790,7 +820,8 @@ async function submitTogetherResponse() {
 function renderTogetherFeed() {
   const el=document.getElementById('togetherFeed');if(!el)return;
   document.getElementById('togetherCount').textContent=togetherResponses.length+' shared reflection'+(togetherResponses.length===1?'':'s');
-  el.innerHTML=togetherResponses.length?togetherResponses.map(r=>'<article class="together-card"><div class="together-who">'+escapeHtml(r.who)+' · '+escapeHtml(r.date)+'</div><p>'+escapeHtml(r.text)+'</p></article>').join(''):'<div class="panel"><p>No reflections yet. You can be the first, or simply come back when you feel ready.</p></div>';
+  el.innerHTML=togetherResponses.length?togetherResponses.map(r=>'<article class="together-card"><div class="feed-top">'+postAvatarMarkup(r.coat,r.accessories)+'<div><div class="together-who">'+escapeHtml(r.who)+'</div><small>'+escapeHtml(r.date)+'</small></div></div><p>'+escapeHtml(r.text)+'</p></article>').join(''):'<div class="panel"><p>No reflections yet. You can be the first, or simply come back when you feel ready.</p></div>';
+  paintPostAvatars();
 }
 async function addGrowContribution(goal) {
   if(!currentUser){toast('Sign in to help your university garden grow.');return}
