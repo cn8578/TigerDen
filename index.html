@@ -281,11 +281,10 @@ body:not(.authenticated) .auth-gate{display:flex}
  <div class="panel together-prompt">
   <div class="eyebrow">THIS WEEK'S QUESTION</div>
   <h3 id="togetherQuestion">What is something you thought everyone else understood, but you are still figuring out?</h3>
-  <p>Small uncertainties are part of being human. You can respond anonymously, and you never need to include identifying details.</p>
+  <p>Small uncertainties are part of being human. Your real name and email stay private; your Tiger name appears with your response.</p>
   <textarea id="togetherResponse" placeholder="Something I'm still figuring out is…"></textarea>
   <div class="form-row">
-   <label class="check"><input type="checkbox" id="togetherAnonymous" checked> Share anonymously with your university community</label>
-   <button class="btn" onclick="submitTogetherResponse()">Share with the circle</button>
+    <button class="btn" onclick="submitTogetherResponse()">Share with the circle</button>
   </div>
   <p class="muted" id="togetherStatus">Shared responses are visible only to verified members of your university email community.</p>
  </div>
@@ -332,13 +331,14 @@ body:not(.authenticated) .auth-gate{display:flex}
   <div class="auth-tabs"><button class="auth-tab active" type="button" onclick="setAuthMode('signin')">Sign in</button><button class="auth-tab" type="button" onclick="setAuthMode('signup')">Create account</button></div>
   <form id="authForm" onsubmit="event.preventDefault();submitAuth()">
    <div class="auth-fields">
-    <label id="authDisplayWrap" hidden>Your name<input id="authDisplayName" maxlength="40" autocomplete="name" placeholder="How should the community know you?"></label>
-    <label id="authTigerWrap" hidden>Your tiger’s name<input id="authTigerName" maxlength="32" placeholder="e.g. Clementine"></label>
+    <label id="authDisplayWrap" hidden>Your name (private)<input id="authDisplayName" maxlength="40" autocomplete="name" placeholder="Only you can see this"></label>
+    <label id="authTigerWrap" hidden>Your tiger’s name (public)<input id="authTigerName" maxlength="32" placeholder="e.g. Clementine"></label>
     <label>University email<input id="authEmail" type="email" required autocomplete="email" placeholder="you@university.edu"></label>
     <label>Password<input id="authPassword" type="password" required minlength="8" autocomplete="current-password" placeholder="At least 8 characters"></label>
    </div>
    <button class="btn" id="authSubmit" type="submit" style="width:100%;margin-top:15px">Sign in</button>
   </form>
+  <p class="auth-foot" id="privacyNote" hidden><strong>Your privacy:</strong> Your real name and email address are never shown to other members. Your Tiger name is public and will appear on posts and shared contributions. Use a Tiger name you’re comfortable sharing.</p>
   <div class="auth-note" id="authMessage" role="status" aria-live="polite"></div>
   <p class="auth-foot">Use your university email address. You’ll need to verify it before you can post or contribute to your campus community. Your private reflections are visible only to your account.</p>
  </div>
@@ -353,7 +353,7 @@ body:not(.authenticated) .auth-gate{display:flex}
    </div>
    <div class="profile-actions"><button class="btn" type="submit">Save changes</button><button class="btn secondary" type="button" onclick="closeProfileSettings()">Cancel</button><button class="btn secondary" type="button" onclick="signOutApp()">Sign out</button></div>
   </form>
-  <p class="auth-foot">Your community is <strong id="profileCommunity"></strong>. Only verified accounts from the same email domain can see its posts.</p>
+  <p class="auth-foot">Your community is <strong id="profileCommunity"></strong>. Your real name and email are private; your Tiger name is what other members see on your posts.</p>
  </div>
 </div>
 
@@ -559,6 +559,7 @@ function setAuthMode(mode) {
   document.querySelectorAll('.auth-tab').forEach((b,i)=>b.classList.toggle('active',(authMode==='signin'&&i===0)||(authMode==='signup'&&i===1)));
   document.getElementById('authDisplayWrap').hidden = authMode !== 'signup';
   document.getElementById('authTigerWrap').hidden = authMode !== 'signup';
+  document.getElementById('privacyNote').hidden = authMode !== 'signup';
   document.getElementById('authTitle').textContent = authMode === 'signup' ? 'Make a home in the den.' : 'A little space to grow, together.';
   document.getElementById('authSubmit').textContent = authMode === 'signup' ? 'Create account' : 'Sign in';
   document.getElementById('authPassword').autocomplete = authMode === 'signup' ? 'new-password' : 'current-password';
@@ -761,8 +762,7 @@ async function submitTogetherResponse() {
   const field=document.getElementById('togetherResponse'), value=field.value.trim();
   if(value.length<8){toast('Share a few more words, if you feel comfortable.');return}
   if(!currentUser){toast('Sign in to share with your university community.');return}
-  const anonymous=document.getElementById('togetherAnonymous').checked;
-  const r=await supabaseClient.from('community_posts').insert({content:value,post_type:'together',is_anonymous:anonymous});
+  const r=await supabaseClient.from('community_posts').insert({content:value,post_type:'together'});
   if(r.error){toast('Your response could not be shared: '+r.error.message);return}
   field.value='';document.getElementById('togetherStatus').textContent='Your response has been shared with verified members of @'+currentProfile.email_domain+'.';
   await loadTogetherPosts();toast('Thank you for sharing. You belong here 💚');
