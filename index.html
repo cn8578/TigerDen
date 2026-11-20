@@ -715,8 +715,8 @@ async function loadAccountData() {
   if (!currentUser) return;
   const results = await Promise.all([
     supabaseClient.from('reflections').select('id,content,created_at').order('created_at',{ascending:false}).limit(100),
-    supabaseClient.from('community_posts').select('id,post_type,author_name,content,created_at').eq('post_type','community').order('created_at',{ascending:false}).limit(50),
-    supabaseClient.from('community_posts').select('id,post_type,author_name,content,created_at').eq('post_type','together').order('created_at',{ascending:false}).limit(50),
+    supabaseClient.from('community_posts').select('id,post_type,author_name,content,created_at,author_coat,author_accessories').eq('post_type','community').order('created_at',{ascending:false}).limit(50),
+    supabaseClient.from('community_posts').select('id,post_type,author_name,content,created_at,author_coat,author_accessories').eq('post_type','together').order('created_at',{ascending:false}).limit(50),
     supabaseClient.from('grow_contributions').select('id,user_id,milestone_key,note,contribution_date,created_at').order('created_at',{ascending:false}).limit(1000)
   ]);
   const errors = results.filter(x=>x.error);
